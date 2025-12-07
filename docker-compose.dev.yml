@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # ==================== DEVELOPMENT ====================
+
+  # Frontend com Hot Reload
+  frontend:
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile.dev
+    container_name: gdash-frontend-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./services/frontend/src:/app/src
+      - ./services/frontend/index.html:/app/index.html
+      - ./services/frontend/vite.config.ts:/app/vite.config.ts
+      - ./services/frontend/tsconfig.json:/app/tsconfig.json
+    environment:
+      VITE_API_BASE_URL: http://localhost:3001
+      VITE_APP_NAME: GDASH
+    depends_on:
+      - backend
+    networks:
+      - gdash-network
+    restart: unless-stopped
+    # Sem distração: apenas atualizações do código
+    stdin_open: true
+    tty: true
+
+  # Backend (reutiliza a imagem existente)
+  backend:
+    build:
+      context: ./services/backend
+      dockerfile: Dockerfile
+    container_name: gdash-backend-dev
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: mongodb://root:password@mongodb:27017/gdash?authSource=admin
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      JWT_SECRET: dev-secret-key-change-in-production
+      JWT_EXPIRATION: 24h
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - gdash-network
+    restart: unless-stopped
+
+  # MongoDB
+  mongodb:
+    image: mongo:7.0
+    container_name: gdash-mongodb-dev
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongodb_data_dev:/data/db
+    networks:
+      - gdash-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: gdash-rabbitmq-dev
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data_dev:/var/lib/rabbitmq
+    networks:
+      - gdash-network
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  gdash-network:
+    driver: bridge
+
+volumes:
+  mongodb_data_dev:
+  rabbitmq_data_dev:
