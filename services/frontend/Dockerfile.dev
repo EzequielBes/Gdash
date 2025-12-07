@@ -1,0 +1,23 @@
+# Build stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Instalar pnpm
+RUN npm install -g pnpm
+
+# Copiar arquivos de dependências
+COPY package*.json ./
+COPY pnpm-lock.yaml* ./
+
+# Instalar dependências
+RUN pnpm install --no-frozen-lockfile
+
+# Copiar código fonte
+COPY . .
+
+# Expor porta para Vite HMR (Hot Module Replacement)
+EXPOSE 5173
+
+# Iniciar Vite em modo desenvolvimento com HMR
+CMD ["pnpm", "dev"]
