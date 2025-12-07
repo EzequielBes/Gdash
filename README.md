@@ -86,3 +86,11 @@ cd services/frontend
 npm install
 npm run dev
 ```
+
+---
+
+## 📹 Vídeo Explicativo
+
+Confira o vídeo demonstrativo do projeto:
+[Assistir no YouTube](https://www.youtube.com/watch?v=5kILGGWLecU&feature=youtu.be)
+
